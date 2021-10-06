@@ -6,6 +6,7 @@ use App\Service\RabbitMq\MQHelper;
 use App\Models\AdClick;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 
 class IndexController extends BaseController
@@ -82,5 +83,11 @@ class IndexController extends BaseController
         } catch (\Throwable $throwable) {
             throw new \Exception($throwable->getMessage(),$throwable->getCode(),$throwable->getFile(),$throwable->getLine());
         }
+    }
+
+    public function testRedis()
+    {
+        Redis::set('test','testresid');
+        return 'ok';
     }
 }

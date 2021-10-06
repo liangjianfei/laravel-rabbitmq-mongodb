@@ -20,3 +20,4 @@ Route::get('/test', [\App\Http\Controllers\IndexController::class,'test']);
 Route::get('/index', [\App\Http\Controllers\IndexController::class,'index']);
 Route::get('/add', [\App\Http\Controllers\IndexController::class,'addMongo']);
 Route::get('/send', [\App\Http\Controllers\IndexController::class,'sendMq']);
+Route::get('/redis', [\App\Http\Controllers\IndexController::class,'testRedis']);
