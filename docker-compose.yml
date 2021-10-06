@@ -1,0 +1,235 @@
+version: '2'
+
+networks:
+   extnetwork:
+      ipam:
+         config:
+         - subnet: 172.19.0.0/16
+           gateway: 172.19.0.1
+
+volumes:
+  mysql:
+    driver: local
+  redis:
+    driver: local
+
+services:
+
+  # php
+  php:
+    image: aspire123456/php7.3:v1
+    container_name: php7.3
+    #总是重启后启动
+    restart: always
+    links:
+      - mysql
+      - redis
+      - rabbitmq
+      - consul
+      - mongo
+    volumes:
+      - /d/code:/www
+      - /d/project/dockerConf/php7.3/config/php-fpm.d:/usr/local/etc/php-fpm.d
+      - /d/project/dockerConf/php7.3/config/conf.d:/usr/local/etc/php
+    ports:
+      - 9000:9000
+      - 9501:9501
+      - 9502:9502
+      - 9503:9503
+      - 9504:9504
+      - 9505:9505
+      - 9506:9506
+    depends_on:
+      - mysql
+      - redis
+      - rabbitmq
+      - mongo
+    networks:
+         extnetwork:
+            ipv4_address: 172.19.0.2
+
+  #nginx
+  nginx:
+    image: aspire123456/nginx:v1
+    links:
+      - php
+    container_name: nginx
+    #总是重启后启动
+    restart: always
+    volumes:
+      - /d/code:/www
+      - /d/project/dockerConf/nginx01/log:/var/log/nginx
+      - /d/project/dockerConf/nginx01/conf:/etc/nginx/conf.d
+    ports:
+      - 80:80
+    depends_on:
+      - php
+    networks:
+         extnetwork:
+            ipv4_address: 172.19.0.3
+
+  #mysql
+  mysql:
+    image: aspire123456/mysql5.7:v1
+    container_name: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    #总是重启后启动
+    restart: always
+    volumes:
+      - /d/project/dockerConf/mysql01/data:/var/lib/mysql
+      - /d/project/dockerConf/mysql01/log:/log
+      - /d/project/dockerConf/mysql01/conf:/etc/mysql/conf.d
+    ports:
+      - 3306:3306
+    networks:
+         extnetwork:
+            ipv4_address: 172.19.0.4
+
+  #redis
+  redis:
+    image: aspire123456/redis:v1
+    container_name: redis
+    #总是重启后启动
+    restart: always
+    volumes:
+      - /d/project/dockerConf/redis01/data:/data
+      - /d/project/dockerConf/redis01/conf/redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "--protected-mode", "no", "--appendonly", "yes"]
+    hostname:
+        redis
+    ports:
+      - 6379:6379
+    networks:
+         extnetwork:
+            ipv4_address: 172.19.0.5
+    
+
+  #mongo
+  mongo:
+    image: aspire123456/mongo:v1
+    container_name: mongo
+    #总是重启后启动
+    restart: always
+    volumes:
+      - /d/project/dockerConf/mongo01/data:/data
+      - /d/project/dockerConf/mongo01/logs:/var/log/mongodb
+    hostname:
+        mongo
+    ports:
+      - 27017:27017
+    networks:
+         extnetwork:
+            ipv4_address: 172.19.0.11
+
+
+    
+
+  #服务名称
+  rabbitmq:
+    #容器名称
+    container_name: rabbitmq
+    #镜像名称
+    image: aspire123456/rabbitmq3.7:v1
+    hostname: rabbit01
+    #总是重启后启动
+    restart: always
+    #端口映射
+    ports:
+      - 5672:5672
+      - 15672:15672
+    #挂载
+    volumes:
+      - /d/project/dockerConf/rabbitmq01/data:/var/lib/rabbitmq
+    #环境变量
+    environment:
+      - RABBITMQ_DEFAULT_VHOST=/
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    networks:
+         extnetwork:
+            ipv4_address: 172.19.0.6
+    # command: ["rabbitmq-plugins", "enable", "rabbitmq_management"]
+
+  # consul
+  consul:
+    #容器名称
+    container_name: consul
+    #镜像名称
+    image: consul:latest
+    hostname: consul
+    #总是重启后启动
+    restart: always
+    #端口映射
+    ports:
+      - 8500:8500
+    #环境变量
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    networks:
+         extnetwork:
+            ipv4_address: 172.19.0.7
+
+  # consul
+  zookeeper:
+    #容器名称
+    container_name: zookeeper
+    #镜像名称
+    image: wurstmeister/zookeeper:latest
+    hostname: zookeeper
+    #总是重启后启动
+    restart: always
+    #端口映射
+    ports:
+      - 2181:2181
+    #环境变量
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    networks:
+         extnetwork:
+            ipv4_address: 172.19.0.8
+  # kafka
+  kafka:
+    #镜像名称
+    image: wurstmeister/kafka
+    #容器名称
+    container_name: kafka
+    links:
+      - zookeeper
+    #端口映射
+    ports:
+      - 9092:9092
+    #环境变量
+    environment:
+      KAFKA_BROKER_ID: 0   #broker的全局唯一编号，不能重复
+      KAFKA_ADVERTISED_HOST_NAME: 172.18.74.33   ## 修改:宿主机IP
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181       ## 卡夫卡运行是基于zookeeper的
+    #总是重启后启动
+    restart: always
+    depends_on:
+      - zookeeper
+    #挂载
+    volumes:
+      - /d/project/dockerConf/kafka01/loaltime:/etc/localtime
+    networks:
+         extnetwork:
+            ipv4_address: 172.19.0.9
+  # kafka-manager
+  kafka-manager: 
+    #容器名称
+    container_name: kafka-manager 
+    links:
+      - zookeeper
+    image: sheepkiller/kafka-manager                ## 镜像：开源的web管理kafka集群的界面
+    #总是重启后启动
+    restart: always
+    environment:
+        ZK_HOSTS: zookeeper:2181                    ## 修改:宿主机IP
+        APPLICATION_SECRET: letmein
+    ports:  
+      - "9091:9000"                                 ## 暴露端口
+    depends_on:
+      - zookeeper
+    networks:
+         extnetwork:
+            ipv4_address: 172.19.0.10
