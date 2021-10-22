@@ -22,7 +22,7 @@ go 使用grpc
 //下面为.proto文件内容
 syntax = "proto3";
 
-option go_package ="./;golang";
+option go_package ="./;hello_grpc";
 
 package hello_grpc;
 
