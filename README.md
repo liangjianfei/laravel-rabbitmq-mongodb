@@ -1,6 +1,8 @@
 # laravel-rabbitmq-mongodb
 laravel 框架下使用rabbitmq和mongodb
 
+注意：代码在master分支
+
 docker-compose.yml 是一个docker环境下的PHP集成开发环境，主要包括RabbitMQ、MongoDB、Redis、Mysql、PHP、Nginx、Kafka等
 
 使用：只需要在docker-compose.yml文件目录下执行 docker-compose up -d
